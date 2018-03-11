@@ -8,6 +8,7 @@ import (
 
 
 type ALog struct {
+	writerLv int
 	level    int
 	logCnt   int
 	logFileName  string
@@ -36,13 +37,14 @@ func NewLogger(logFileName string, level int, chanSize int, tCnt int) (*ALog) {
 	logger := new(ALog)
 	logger.fileStream = logFile
 	logger.level = level
+	logger.writerLv = InfoLevel
 	logger.logCnt = 20
 	logger.logFileName = logFileName
 	logger.fileSize = 100000000
-	logger.err = log.New(logFile, "[ERROR]", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
-	logger.warn = log.New(logFile, "[WARN]", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
-	logger.info = log.New(logFile, "[INFO]", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
-	logger.debug = log.New(logFile, "[DEBUG]", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
+	logger.err = log.New(logFile, "[ERROR] ", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
+	logger.warn = log.New(logFile, "[WARN]  ", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
+	logger.info = log.New(logFile, "[INFO]  ", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
+	logger.debug = log.New(logFile, "[DEBUG] ", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
 	logger.ch = make(chan func(), chanSize)
 	for i:=0;i<tCnt;i++ {
 		go logger.printLog()
@@ -112,6 +114,10 @@ func (aLog *ALog) SetLevel(level int) {
 	aLog.level = level
 }
 
+func (aLog *ALog) SetWriterLv(level int) {
+	aLog.writerLv = level
+}
+
 func (aLog *ALog) SetPrefix(prefix string) {
 	aLog.err.SetPrefix("[ERROR] " + prefix)
 	aLog.warn.SetPrefix("[WARN]  " + prefix)
@@ -155,4 +161,35 @@ func (aLog *ALog) Debug(format string, v ...interface{}) {
 	}
 }
 
+
+func (aLog *ALog) Write(p []byte) (n int, err error) {
+	if aLog.writerLv > aLog.level {
+		return
+	}
+	switch aLog.writerLv {
+		case ErrorLevel:
+			aLog.ch <- func() {
+				aLog.err.Printf(string(p))
+			}
+		case WarnLevel:
+			aLog.ch <- func() {
+				aLog.warn.Printf(string(p))
+			}
+		case InfoLevel:
+			aLog.ch <- func() {
+				aLog.info.Printf(string(p))
+			}
+		case DebugLevel:
+			aLog.ch <- func() {
+				aLog.debug.Printf(string(p))
+			}
+		default:
+			aLog.ch <- func() {
+				aLog.debug.Printf(string(p))
+			}
+	}
+	n = len(p)
+	err = nil
+	return
+}
 
