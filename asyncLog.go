@@ -29,7 +29,7 @@ const (
 )
 
 func NewLogger(logFileName string, level int, chanSize int, tCnt int) (*ALog) {
-	logFile, err:= os.OpenFile(logFileName, os.O_RDWR|os.O_APPEND|os.O_CREATE, 07555)
+	logFile, err:= os.OpenFile(logFileName, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0755)
 	if err != nil {
 		fmt.Println("OpenFile fail")
 		panic(err)
@@ -54,7 +54,7 @@ func NewLogger(logFileName string, level int, chanSize int, tCnt int) (*ALog) {
 
 func (aLog *ALog) retsetOutput () {
 	aLog.fileStream.Close()
-	logFile, err:= os.OpenFile(aLog.logFileName, os.O_RDWR|os.O_APPEND|os.O_CREATE, 07555)
+	logFile, err:= os.OpenFile(aLog.logFileName, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0755)
 	if err != nil {
 		fmt.Println("OpenFile fail")
 		panic(err)
