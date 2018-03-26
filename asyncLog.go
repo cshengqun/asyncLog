@@ -28,7 +28,7 @@ const (
 	DebugLevel
 )
 
-func NewLogger(logFileName string, level int, chanSize int, tCnt int) (*ALog) {
+func NewLogger(logFileName string, level int, chanSize int, tCnt int, flag int) (*ALog) {
 	logFile, err:= os.OpenFile(logFileName, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0755)
 	if err != nil {
 		fmt.Println("OpenFile fail")
@@ -41,10 +41,10 @@ func NewLogger(logFileName string, level int, chanSize int, tCnt int) (*ALog) {
 	logger.logCnt = 20
 	logger.logFileName = logFileName
 	logger.fileSize = 100000000
-	logger.err = log.New(logFile, "[ERROR] ", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
-	logger.warn = log.New(logFile, "[WARN]  ", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
-	logger.info = log.New(logFile, "[INFO]  ", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
-	logger.debug = log.New(logFile, "[DEBUG] ", log.LstdFlags|log.Lshortfile|log.Lmicroseconds)
+	logger.err = log.New(logFile, "[ERROR]", flag)
+	logger.warn = log.New(logFile, "[WARN]", flag)
+	logger.info = log.New(logFile, "[INFO]", flag)
+	logger.debug = log.New(logFile, "[DEBUG]", flag)
 	logger.ch = make(chan func(), chanSize)
 	for i:=0;i<tCnt;i++ {
 		go logger.printLog()
@@ -119,10 +119,10 @@ func (aLog *ALog) SetWriterLv(level int) {
 }
 
 func (aLog *ALog) SetPrefix(prefix string) {
-	aLog.err.SetPrefix("[ERROR] " + prefix)
-	aLog.warn.SetPrefix("[WARN]  " + prefix)
-	aLog.info.SetPrefix("[INFO]  " + prefix)
-	aLog.debug.SetPrefix("[DEBUG] " + prefix)
+	aLog.err.SetPrefix("[ERROR]" + prefix)
+	aLog.warn.SetPrefix("[WARN]" + prefix)
+	aLog.info.SetPrefix("[INFO]" + prefix)
+	aLog.debug.SetPrefix("[DEBUG]" + prefix)
 }
 
 func (aLog *ALog) Error(format string, v ...interface{}) {
@@ -130,7 +130,7 @@ func (aLog *ALog) Error(format string, v ...interface{}) {
 		return
 	}
 	aLog.ch <- func() {
-		aLog.err.Printf(format, v...)
+		aLog.err.Output(2, fmt.Sprintf(format, v...))
 	}
 }
 
@@ -139,7 +139,7 @@ func (aLog *ALog) Warn(format string, v ...interface{}) {
 		return
 	}
 	aLog.ch <- func() {
-		aLog.warn.Printf(format, v...)
+		aLog.warn.Output(2, fmt.Sprintf(format, v...))
 	}
 }
 
@@ -148,7 +148,7 @@ func (aLog *ALog) Info(format string, v ...interface{}) {
 		return
 	}
 	aLog.ch <- func() {
-		aLog.info.Printf(format, v...) 
+		aLog.info.Output(2, fmt.Sprintf(format, v...)) 
 	}
 }
 
@@ -157,7 +157,7 @@ func (aLog *ALog) Debug(format string, v ...interface{}) {
 		return
 	} 
 	aLog.ch <- func() {
-		aLog.debug.Printf(format, v...)
+		aLog.debug.Output(2, fmt.Sprintf(format, v...))
 	}
 }
 
@@ -169,23 +169,23 @@ func (aLog *ALog) Write(p []byte) (n int, err error) {
 	switch aLog.writerLv {
 		case ErrorLevel:
 			aLog.ch <- func() {
-				aLog.err.Printf(string(p))
+				aLog.err.Output(2, string(p))
 			}
 		case WarnLevel:
 			aLog.ch <- func() {
-				aLog.warn.Printf(string(p))
+				aLog.warn.Output(2, string(p))
 			}
 		case InfoLevel:
 			aLog.ch <- func() {
-				aLog.info.Printf(string(p))
+				aLog.info.Output(2, string(p))
 			}
 		case DebugLevel:
 			aLog.ch <- func() {
-				aLog.debug.Printf(string(p))
+				aLog.debug.Output(2, string(p))
 			}
 		default:
 			aLog.ch <- func() {
-				aLog.debug.Printf(string(p))
+				aLog.debug.Output(2, string(p))
 			}
 	}
 	n = len(p)
